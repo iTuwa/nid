@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>NimSchools Virtual Assistant</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f5f7fb;
+        color: #111827;
+      }
+
+      main {
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 0 16px;
+      }
+
+      h1 {
+        font-size: 1.9rem;
+        margin-bottom: 0.5rem;
+        text-align: center;
+      }
+
+      p.description {
+        margin-top: 0;
+        color: #4b5563;
+        max-width: 640px;
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      /* Hide the legacy custom chat widget; Vapi widget is now the primary assistant */
+      #nim-widget-button,
+      #nim-chat {
+        display: none !important;
+      }
+
+      /* Position and frame the Vapi widget to match NIMS blue/green branding */
+      vapi-widget#nim-vapi-widget {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        z-index: 1500;
+        border-radius: 999px;
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.45);
+        overflow: hidden;
+      }
+
+      /* Legacy chat header styles kept for now (widget hidden) */
+      #nim-chat-header {
+        padding: 12px 14px;
+        background: linear-gradient(135deg, #1d4ed8, #22c55e);
+        color: #ffffff;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      #nim-chat-close {
+        background: transparent;
+        border: none;
+        color: #e5e7eb;
+        font-size: 1.1rem;
+        cursor: pointer;
+      }
+
+      #nim-chat-messages {
+        padding: 10px 12px;
+        flex: 1;
+        overflow-y: auto;
+        background: #eff3fb;
+      }
+
+      .nim-msg {
+        margin-bottom: 10px;
+        font-size: 0.85rem;
+        max-width: 90%;
+      }
+
+      .nim-msg.user {
+        margin-left: auto;
+        text-align: right;
+      }
+
+      .nim-msg.user .bubble {
+        background: #2563eb;
+        color: #ffffff;
+        border-bottom-right-radius: 4px;
+      }
+
+      .nim-msg.bot .bubble {
+        background: #ffffff;
+        color: #111827;
+        border-bottom-left-radius: 4px;
+      }
+
+      .nim-msg .bubble {
+        display: inline-block;
+        padding: 8px 10px;
+        border-radius: 10px;
+        line-height: 1.35;
+        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.15);
+        white-space: pre-line;
+      }
+
+      #nim-chat-input {
+        display: flex;
+        padding: 8px;
+        border-top: 1px solid #e5e7eb;
+        background: #f9fafb;
+        gap: 6px;
+      }
+
+      #nim-input-field {
+        flex: 1;
+        padding: 7px 10px;
+        border-radius: 999px;
+        border: 1px solid #d1d5db;
+        font-size: 0.85rem;
+      }
+
+      #nim-input-field:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.3);
+      }
+
+      #nim-send-button {
+        border-radius: 999px;
+        border: none;
+        padding: 0 14px;
+        font-size: 0.85rem;
+        background: #2563eb;
+        color: #ffffff;
+        cursor: pointer;
+      }
+
+      #nim-send-button:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+
+      #nim-voice-button {
+        border-radius: 999px;
+        border: none;
+        padding: 0 10px;
+        font-size: 1rem;
+        background: #e5e7eb;
+        color: #111827;
+        cursor: pointer;
+      }
+
+      #nim-voice-button.active {
+        background: #22c55e;
+        color: #ffffff;
+      }
+
+      #nim-status {
+        font-size: 0.7rem;
+        color: #6b7280;
+        margin-left: 12px;
+        margin-bottom: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Talk with New Ideals Virtual Assistant</h1>
+    
+      
+    </main>
+
+    <!-- Vapi voice widget (implementation mirrored from voa-main/index.html) -->
+    <script
+      src="https://unpkg.com/@vapi-ai/client-sdk-react/dist/embed/widget.umd.js"
+      async
+      type="text/javascript"
+    ></script>
+
+    <vapi-widget
+      id="nim-vapi-widget"
+      public-key="8b2cd7fc-5cf4-484d-9245-2818f237b5ba"
+      mode="voice"
+      theme="light"
+    ></vapi-widget>
+
+    <button id="nim-widget-button" type="button">
+      <span>💬 Chat with NIMS</span>
+    </button>
+
+    <section id="nim-chat" aria-label="NimSchools assistant chat widget">
+      <header id="nim-chat-header">
+        <div>
+          <h2>NIMS Assistant</h2>
+          <span class="sub">Ask about location, academics, staff, admissions and more.</span>
+        </div>
+        <button id="nim-chat-close" type="button" aria-label="Close chat">×</button>
+      </header>
+      <div id="nim-status"></div>
+      <div id="nim-chat-messages"></div>
+      <form id="nim-chat-input">
+        <input
+          id="nim-input-field"
+          type="text"
+          placeholder="Type your question..."
+          autocomplete="off"
+        />
+        <button id="nim-voice-button" type="button" title="Talk">🎙</button>
+        <button id="nim-send-button" type="submit">Send</button>
+      </form>
+    </section>
+
+    <script>
+      // Vapi configuration constants (provided by you)
+      const VAPI_PUBLIC_KEY = "8b2cd7fc-5cf4-484d-9245-2818f237b5ba";
+      const VAPI_ASSISTANT_ID = "c4f27e44-e2bd-48f2-a139-4ad0dc0d14b6";
+
+      const widgetButton = document.getElementById("nim-widget-button");
+      const chat = document.getElementById("nim-chat");
+      const closeButton = document.getElementById("nim-chat-close");
+      const messagesEl = document.getElementById("nim-chat-messages");
+      const form = document.getElementById("nim-chat-input");
+      const input = document.getElementById("nim-input-field");
+      const sendButton = document.getElementById("nim-send-button");
+      const statusEl = document.getElementById("nim-status");
+      const voiceButton = document.getElementById("nim-voice-button");
+
+      let recognition = null;
+      let recognizing = false;
+
+      function appendMessage(text, from) {
+        const wrapper = document.createElement("div");
+        wrapper.className = `nim-msg ${from}`;
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
+        bubble.textContent = text;
+        wrapper.appendChild(bubble);
+        messagesEl.appendChild(wrapper);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      function setStatus(text) {
+        statusEl.textContent = text || "";
+      }
+
+      function speakText(text) {
+        if (!window.speechSynthesis) return;
+        const utterance = new SpeechSynthesisUtterance(text);
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+      }
+
+      async function sendQuestion(question) {
+        setStatus("Thinking...");
+        sendButton.disabled = true;
+        input.disabled = true;
+
+        try {
+          const response = await fetch("/assistant", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question }),
+          });
+
+          const data = await response.json().catch(() => ({}));
+
+          if (!response.ok) {
+            appendMessage(
+              data.error || "Sorry, something went wrong while contacting the assistant.",
+              "bot"
+            );
+            speakText(
+              data.error || "Sorry, something went wrong while contacting the assistant."
+            );
+          } else {
+            const answer = data.answer || "I did not receive an answer from the server.";
+            appendMessage(answer, "bot");
+            speakText(answer);
+          }
+        } catch (err) {
+          appendMessage(
+            "I could not reach the server. Please check your internet connection or try again.",
+            "bot"
+          );
+          speakText(
+            "I could not reach the server. Please check your internet connection or try again."
+          );
+        } finally {
+          setStatus("");
+          sendButton.disabled = false;
+          input.disabled = false;
+          input.focus();
+        }
+      }
+
+      function initSpeech() {
+        const SpeechRecognition =
+          window.SpeechRecognition || window.webkitSpeechRecognition || null;
+
+        if (!SpeechRecognition) {
+          voiceButton.disabled = true;
+          voiceButton.title = "Voice not supported in this browser";
+          return;
+        }
+
+        recognition = new SpeechRecognition();
+        recognition.lang = "en-US";
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+          recognizing = true;
+          voiceButton.classList.add("active");
+          setStatus("Listening...");
+        };
+
+        recognition.onend = () => {
+          recognizing = false;
+          voiceButton.classList.remove("active");
+          setStatus("");
+        };
+
+        recognition.onerror = () => {
+          recognizing = false;
+          voiceButton.classList.remove("active");
+          setStatus("Could not capture audio. Please try again.");
+        };
+
+        recognition.onresult = (event) => {
+          const result = event.results[0] && event.results[0][0];
+          if (!result) return;
+          const transcript = (result.transcript || "").trim();
+          if (!transcript) return;
+          appendMessage(transcript, "user");
+          sendQuestion(transcript);
+        };
+      }
+
+      widgetButton.addEventListener("click", () => {
+        chat.style.display = "flex";
+        widgetButton.style.display = "none";
+        if (!messagesEl.hasChildNodes()) {
+          appendMessage(
+            "Hello! I am the New Ideal Model Schools assistant. How can I help you today?",
+            "bot"
+          );
+        }
+        input.focus();
+      });
+
+      closeButton.addEventListener("click", () => {
+        chat.style.display = "none";
+        widgetButton.style.display = "flex";
+      });
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const question = (input.value || "").trim();
+        if (!question) return;
+        appendMessage(question, "user");
+        input.value = "";
+        sendQuestion(question);
+      });
+
+      voiceButton.addEventListener("click", () => {
+        if (!recognition) return;
+        if (recognizing) {
+          recognition.stop();
+        } else {
+          recognition.start();
+        }
+      });
+
+      document.addEventListener("DOMContentLoaded", () => {
+        initSpeech();
+      });
+
+      // Configure the Vapi widget with assistant settings from the backend,
+      // following the pattern from voa-main/index.html.
+      document.addEventListener("DOMContentLoaded", function () {
+        var vapiWidget = document.querySelector("vapi-widget");
+        if (!vapiWidget) return;
+
+        fetch("/vapi/assistant-config")
+          .then(function (response) {
+            return response.json();
+          })
+          .then(function (config) {
+            vapiWidget.setAttribute("assistant", JSON.stringify(config));
+          })
+          .catch(function (error) {
+            console.error("Error loading Vapi assistant config:", error);
+          });
+      });
+    </script>
+  </body>
+</html>
