@@ -10,6 +10,36 @@ VAPI_ASSISTANT_ID = os.getenv(
 )
 
 
+# Dummy PIN-protected results data.
+# In a real deployment you would replace this with a database or secure API.
+RESULTS_BY_PIN = {
+    "1234": {
+        "student_name": "Aisha Ibrahim",
+        "class": "Year 6 Zebra",
+        "session": "2024/2025",
+        "term": "Second Term",
+        "subjects": {
+            "mathematics": {"score": 88, "grade": "A"},
+            "english": {"score": 82, "grade": "A-"},
+            "science": {"score": 79, "grade": "B+"},
+            "social studies": {"score": 85, "grade": "A"},
+        },
+    },
+    "5678": {
+        "student_name": "David Okafor",
+        "class": "Year 9 Beryl",
+        "session": "2024/2025",
+        "term": "Second Term",
+        "subjects": {
+            "mathematics": {"score": 72, "grade": "B"},
+            "english": {"score": 90, "grade": "A+"},
+            "physics": {"score": 76, "grade": "B+"},
+            "chemistry": {"score": 69, "grade": "C+"},
+        },
+    },
+}
+
+
 def create_app() -> Flask:
     app = Flask(__name__)
     CORS(app)
@@ -48,6 +78,65 @@ def create_app() -> Flask:
 
         answer = answer_question(question)
         return jsonify({"answer": answer})
+
+    @app.post("/results")
+    def results_lookup():
+        """Return a student's result for a given subject, protected by a PIN.
+
+        Expected JSON body:
+        {
+          "pin": "1234",          # required
+          "subject": "math"       # optional; if missing, return all subjects
+        }
+        """
+
+        data = request.get_json(silent=True) or {}
+        pin = (data.get("pin") or "").strip()
+        subject_raw = (data.get("subject") or "").strip().lower()
+
+        if not pin:
+            return jsonify({"error": "Missing 'pin' in request body."}), 400
+
+        record = RESULTS_BY_PIN.get(pin)
+        if not record:
+            # Do not reveal whether the PIN is close/valid; just say it's invalid.
+            return jsonify({"error": "Invalid PIN. Please check and try again."}), 403
+
+        subjects = record["subjects"]
+
+        if not subject_raw:
+            # Return all subjects for this PIN
+            return jsonify({
+                "student_name": record["student_name"],
+                "class": record["class"],
+                "session": record["session"],
+                "term": record["term"],
+                "subjects": subjects,
+            })
+
+        # Normalise some common subject aliases
+        alias_map = {
+            "math": "mathematics",
+            "maths": "mathematics",
+            "english language": "english",
+        }
+        subject_key = alias_map.get(subject_raw, subject_raw)
+
+        subject_result = subjects.get(subject_key)
+        if not subject_result:
+            return jsonify({
+                "error": f"No recorded result for subject '{subject_raw}' for this student.",
+            }), 404
+
+        return jsonify({
+            "student_name": record["student_name"],
+            "class": record["class"],
+            "session": record["session"],
+            "term": record["term"],
+            "subject": subject_key,
+            "score": subject_result["score"],
+            "grade": subject_result["grade"],
+        })
 
     @app.post("/vapi/make-call")
     def vapi_make_call():
